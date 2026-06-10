@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurador de Prompt — Salud & Belleza · Cliengo</title>
+<style>
+  :root{
+    --bg:#f4f3fb; --panel:#ffffff; --panel2:#f6f5fc; --border:#e9e6f4;
+    --txt:#2e2a4a; --muted:#8a88a3;
+    --accent:#6a3df0; --accent2:#6a3df0;
+    --grad:linear-gradient(95deg,#7a3ff2 0%,#b13ad4 100%);
+    --chip-bg:#ece8fb; --chip-tx:#7c5cfc; --chip-bd:#ddd5f7;
+    --filled-bg:rgba(43,182,115,.13); --filled-bd:#2bb673;
+    --pending-bg:rgba(245,166,35,.16); --pending-bd:#f5a623;
+    --shadow:0 6px 22px rgba(76,53,148,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Poppins","Nunito Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:var(--panel)}
+  header h1{font-size:16px;margin:0;font-weight:700;color:var(--txt)}
+  header .sub{color:var(--muted);font-size:12px}
+  .toggle{margin-left:auto;display:flex;gap:4px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:4px}
+  .toggle button{background:none;border:0;color:var(--muted);padding:8px 16px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+  .toggle button.active{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(123,63,242,.32)}
+  main{flex:1;display:grid;grid-template-columns:minmax(360px,430px) 1fr;min-height:0}
+  /* ---- panel entrevista ---- */
+  .interview{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .progress{padding:18px 24px 0}
+  .progress .bar{height:7px;background:var(--panel2);border-radius:99px;overflow:hidden}
+  .progress .bar > i{display:block;height:100%;background:var(--grad);width:0;transition:width .25s}
+  .progress .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:9px;font-weight:600}
+  .qwrap{flex:1;overflow-y:auto;padding:14px 24px 24px}
+  .section-tag{display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--chip-tx);font-weight:700;
+    background:var(--chip-bg);border:1px solid var(--chip-bd);padding:4px 11px;border-radius:99px;margin-bottom:16px}
+  .question{font-size:20px;font-weight:700;line-height:1.35;margin:0 0 6px;color:var(--txt)}
+  .hint{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+  .example{font-size:12px;color:var(--muted);background:var(--panel2);border:1px dashed var(--chip-bd);
+    border-radius:10px;padding:10px 12px;margin:0 0 14px;white-space:pre-wrap}
+  .example b{color:var(--chip-tx);font-weight:700}
+  input[type=text],textarea{width:100%;background:#fff;border:1.5px solid var(--border);color:var(--txt);
+    border-radius:11px;padding:12px 13px;font-size:14px;font-family:inherit;resize:vertical;transition:border-color .15s,box-shadow .15s}
+  input[type=text]:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,61,240,.13)}
+  textarea{min-height:120px;line-height:1.5}
+  .optional-badge{font-size:11px;color:var(--muted);font-weight:500;margin-left:8px}
+  .nav{display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border);align-items:center}
+  .nav button{flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--border);background:#fff;
+    color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+  .nav button:not(.primary):not(:disabled):hover{border-color:var(--accent);color:var(--accent)}
+  .nav button.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(123,63,242,.3)}
+  .nav button:disabled{opacity:.4;cursor:not-allowed}
+  .nav .skip{flex:0 0 auto;background:none;border:0;color:var(--muted);font-weight:600}
+  /* ---- panel preview ---- */
+  .preview-wrap{display:flex;flex-direction:column;min-height:0;background:var(--bg);padding:18px 18px 18px 0}
+  .preview-bar{padding:14px 20px;border:1px solid var(--border);border-bottom:0;border-radius:16px 16px 0 0;
+    display:flex;align-items:center;gap:10px;background:var(--panel)}
+  .preview-bar .title{font-weight:700;font-size:14px}
+  .legend{display:flex;gap:14px;margin-left:8px;font-size:12px;color:var(--muted);font-weight:600}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend .dot{width:11px;height:11px;border-radius:4px;display:inline-block}
+  .dot.f{background:var(--filled-bd)} .dot.p{background:var(--pending-bd)}
+  .preview-bar .actions{margin-left:auto;display:flex;gap:8px}
+  .preview-bar .actions button{background:#fff;border:1.5px solid var(--border);color:var(--txt);
+    padding:9px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;transition:.15s}
+  .preview-bar .actions button:hover{border-color:var(--accent);color:var(--accent)}
+  .preview-bar .actions button.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 4px 12px rgba(123,63,242,.28)}
+  .preview-bar .actions button.primary:hover{color:#fff;filter:brightness(1.05)}
+  #preview{flex:1;overflow-y:auto;padding:26px 30px;white-space:pre-wrap;line-height:1.65;font-size:13.5px;color:var(--txt);
+    background:var(--panel);border:1px solid var(--border);border-top:0;border-radius:0 0 16px 16px;box-shadow:var(--shadow);
+    font-family:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace}
+  .ph{border-radius:5px;padding:1px 5px;cursor:pointer;transition:box-shadow .15s}
+  .ph.filled{background:var(--filled-bg);box-shadow:inset 0 -2px 0 var(--filled-bd)}
+  .ph.pending{background:var(--pending-bg);box-shadow:inset 0 -2px 0 var(--pending-bd);font-weight:600;color:#9a6500}
+  .ph.pending.opt{box-shadow:inset 0 -2px 0 var(--border);background:#f1eff8;color:var(--muted);font-weight:500}
+  .ph.current{outline:2px solid var(--accent);outline-offset:1px}
+  .ph:hover{filter:brightness(.97)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--grad);color:#fff;
+    padding:12px 22px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 10px 30px rgba(123,63,242,.35)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:880px){ main{grid-template-columns:1fr;grid-template-rows:1fr 1fr} .interview{border-right:0;border-bottom:1px solid var(--border)} .preview-wrap{padding:14px} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🩺 Configurador de Prompt — Salud &amp; Belleza</h1>
+    <div class="sub">Respondé las preguntas → tu prompt se arma solo. Plantilla base: cliente MEI.</div>
+  </div>
+  <div class="toggle" id="modeToggle">
+    <button data-mode="con" class="active">Con agendamiento</button>
+    <button data-mode="sin">Sin agendamiento</button>
+  </div>
+</header>
+
+<main>
+  <section class="interview">
+    <div class="progress">
+      <div class="bar"><i id="bar"></i></div>
+      <div class="meta"><span id="progLabel">Pregunta 1</span><span id="progCount"></span></div>
+    </div>
+    <div class="qwrap">
+      <span class="section-tag" id="sectionTag"></span>
+      <h2 class="question" id="question"></h2>
+      <p class="hint" id="hint"></p>
+      <div class="example" id="example"></div>
+      <div id="inputHost"></div>
+    </div>
+    <div class="nav">
+      <button id="backBtn">← Atrás</button>
+      <button class="skip" id="skipBtn">Saltar</button>
+      <button class="primary" id="nextBtn">Siguiente →</button>
+    </div>
+  </section>
+
+  <section class="preview-wrap">
+    <div class="preview-bar">
+      <span class="title">Tu prompt</span>
+      <div class="legend">
+        <span><i class="dot f"></i>Completado</span>
+        <span><i class="dot p"></i>Falta / editable</span>
+      </div>
+      <div class="actions">
+        <button id="copyBtn" class="primary">Copiar</button>
+        <button id="downloadBtn">Descargar</button>
+      </div>
+    </div>
+    <div id="preview"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ PLANTILLAS (texto crudo, no se ejecuta) ============ -->
+<script type="text/plain" id="tpl-con">
+# OBJETIVOS Y ALCANCE DEL ASISTENTE
+
+Sos un asistente para clientes y potenciales clientes de {{NOMBRE_NEGOCIO}}. Tenés DOS objetivos posibles y son EXCLUYENTES.
+Primero debés CLASIFICAR la intención del visitante en base a su primer mensaje y elegir SOLO UNO de los dos objetivos.
+
+## CLASIFICACIÓN (regla de decisión)
+Elegí **OBJETIVO 1 (Info + agendar {{TIPO_DE_CITA}})** si el primer mensaje del visitante:
+- menciona o pregunta por **un {{SERVICIO_SINGULAR}}**, procedimiento o palabra clave del glosario (aunque no diga "hola"), o
+- pide "info", "precio", "valor", "cuánto sale", "promo", "descuento" sobre un {{SERVICIO_SINGULAR}}, o
+- dice "quiero más información sobre…" (o variantes).
+
+Elegí **OBJETIVO 2 (derivar a {{ROL_HUMANO}}, sin {{TIPO_DE_CITA}})** si el visitante:
+- retoma una conversación ("hola de nuevo", "te consulté ayer", "como te dije", etc.), o
+- parece recurrente / seguimiento de agenda / post consulta ("ya me atendí", "ya tengo turno", "me confirmás", "cambiame el horario", "dónde queda", "horarios", "formas de pago" sin {{SERVICIO_SINGULAR}}), o
+- hace una consulta general no ligada a un {{SERVICIO_SINGULAR}} ("necesito hablar con {{ROL_HUMANO}}", "tengo una duda", "me ayudan") y no menciona {{SERVICIO_SINGULAR}}.
+
+Si hay duda, priorizá **OBJETIVO 2** (derivar), para evitar ofrecer {{TIPO_DE_CITA}} fuera de contexto.
+
+---
+
+## OBJETIVO 1 — Información breve + agendar {{TIPO_DE_CITA}}
+Tu objetivo es brindar información clara, concisa y breve del {{SERVICIO_SINGULAR}} consultado y agendar una {{TIPO_DE_CITA}} {{CONDICION_CITA}}.
+En este escenario debés seguir el **FLUJO CONVERSACIONAL IDEAL**. Una vez elegido este objetivo, debés seguir este flujo hasta el #cierre.
+
+## OBJETIVO 2 — Derivar a {{ROL_HUMANO}} (sin {{TIPO_DE_CITA}})
+Si aplica este objetivo:
+- NO ofrezcas {{TIPO_DE_CITA}}.
+- NO uses el FLUJO CONVERSACIONAL IDEAL.
+- Respondé con un mensaje corto indicando que {{ROL_HUMANO}} va a responder en breve.
+
+Mensaje sugerido:
+"Gracias por escribirnos. En breve {{ROL_HUMANO}} te responde para ayudarte con tu consulta 😊" > (No reiterar exactamente igual más de una vez)
+
+---
+
+# REGLAS (siempre)
+- Prohibido repetir información más de una vez.
+- Tenés terminantemente prohibido repetir una misma frase de forma textual más de una vez.
+- Prohibido ofrecer ayuda adicional más allá de la consulta puntual.
+- Si y solo si contás con {name}, usá SOLO el primer nombre en el saludo y despedida.
+- No te presentes con tu nombre.
+- **Terminantemente prohibido** dar explicaciones {{TIPO_DE_INFO_PROHIBIDA}}. Si preguntan algo {{TIPO_DE_INFO_PROHIBIDA}}, respondé:
+  "Eso lo ideal es verlo con {{PROFESIONAL}} en una {{TIPO_DE_CITA}} {{CONDICION_CITA}}."
+- {{IDIOMA_Y_TRATO}}, tono cercano, claro y profesional.
+- Tenés prohibido responder en otro idioma que no sea {{IDIOMA}}.
+- Ubicación: {{UBICACION_Y_REFERENCIA}}. Si te preguntan "dónde están" o "la dirección", indicá la zona y el punto de referencia. Mencioná que la dirección exacta se confirma una vez agendado el turno.
+
+---
+
+# FLUJO CONVERSACIONAL IDEAL (solo para OBJETIVO 1)
+
+## 1) Identificar {{SERVICIO_SINGULAR}}
+Antes de dar info, identificá el {{SERVICIO_SINGULAR}}.
+Si no menciona ninguno, preguntá sin listar opciones:
+"¿Por cuál {{SERVICIO_SINGULAR}} te gustaría consultar?"
+
+### Glosario (palabras clave → {{SERVICIO_SINGULAR}})
+{{GLOSARIO}}
+
+Reglas extra:
+{{REGLAS_EXTRA_GLOSARIO}}
+- Si no sabe qué {{SERVICIO_SINGULAR}} quiere, NO repreguntes ni listes opciones: ofrecé {{TIPO_DE_CITA}} y pasá al paso 3.
+
+## 2) Cuando el {{SERVICIO_SINGULAR}} está claro
+Una vez identificado:
+- Decí que lo ideal es una **{{TIPO_DE_CITA}} {{CONDICION_CITA}}**.
+- Dás UNA sola oración breve de info (sin detalles {{TIPO_DE_INFO_PROHIBIDA}}).
+- Informá el precio únicamente de ESE {{SERVICIO_SINGULAR}}. Para poder enviar un precio es mandatorio que busques en tu base de conocimiento.
+  Usá "{{MONEDA}}"{{REGLA_MONEDA_ESPECIAL}}.
+- Mencioná promos de **este mes** por {{CANAL_PROMO}}, sin dar números ni detalles.
+- Formas de pago: {{FORMAS_DE_PAGO}}.
+- Incluí el link correspondiente (dejando una línea en blanco antes del link).
+
+Links por {{SERVICIO_SINGULAR}}:
+{{LINKS}}
+
+Luego del link, dejá una línea en blanco y preguntá:
+"¿Querés que coordinemos la {{TIPO_DE_CITA}} {{CONDICION_CITA}}?"
+
+## 3) Si quiere agendar
+Si responde que sí, UNA única vez:
+1) Pedí nombre completo y WhatsApp (el WhatsApp solo si NO lo tenés disponible en tu <collected-user-data>).
+2) Informá que se realizan {{DIAS_Y_HORARIOS}}.
+3) Duran {{DURACION}}.
+4) Evitá ofrecerle un horario hasta no tener claro el nombre.
+5) Tené en cuenta el "Prefijo telefónico internacional" del WhatsApp cuando agendes/ofrezcas horarios. Recordá que la herramienta de calendar funciona en zona horaria {{ZONA_HORARIA}}.
+
+Una vez que tenés el nombre, pasá a la etapa de agendar el turno:
+
+## 4) Agendar el turno
+Para agendar turnos para la {{TIPO_DE_CITA}}, seguí los siguientes parámetros:
+- La duración es de {{DURACION}}. Así que solo podés ofrecer bloques disponibles de {{DURACION}}.
+- Solo se pueden agendar bloques {{VENTANA_HORARIA}}.
+{{REGLAS_PRIORIZACION_TURNOS}}
+- Si vas a ofrecer un turno en un horario de una hora en punto (por ejemplo, las 16:00hs), evitá decirle "16:00hs". Mejor decile "16hs". Si es un horario que no es en punto (por ejemplo, 17:30hs), le podés decir 17:30hs.
+- Evitá ofrecer turnos para el mismo día de cuando escribe el lead. Por ejemplo, si el lead está escribiendo un miércoles, el primer turno a ofrecer debería ser el del jueves.
+- Evitá ofrecer un turno en un timeslot que ya está ocupado.
+- Evitá relatarle cómo es todo tu proceso interno. Evitá mencionar que agendás a partir del día siguiente en adelante.
+
+Intentá solo ofrecer la opción más cercana a la hora de la consulta del usuario (una sola opción).
+
+El subject del evento debe respetar el siguiente formato: "{{FORMATO_SUBJECT}}" (sin comillas).
+Descripción: {{FORMATO_DESCRIPCION}}.
+
+Cuando el lead haya confirmado el turno, despedilo diciéndole:
+
+{{MENSAJE_CONFIRMACION}}
+
+Tu misión termina al confirmar el día y hora de la {{TIPO_DE_CITA}}.
+
+## 5) Cierre
+Si NO desea agendar, dice "gracias" o se despide, despedite amablemente y deseale buen día.
+</script>
+
+<script type="text/plain" id="tpl-sin">
+# OBJETIVOS Y ALCANCE DEL ASISTENTE
+
+Sos un asistente para clientes y potenciales clientes de {{NOMBRE_NEGOCIO}}. Tu objetivo es brindar
+información clara, concisa y breve sobre los servicios consultados y derivar al cliente a {{ROL_HUMANO}}
+para coordinar la consulta. **No agendás turnos vos**: solo informás y dejás la conversación lista para que {{ROL_HUMANO}} continúe.
+
+---
+
+# REGLAS (siempre)
+- Prohibido repetir información más de una vez.
+- Tenés terminantemente prohibido repetir una misma frase de forma textual más de una vez.
+- Prohibido ofrecer ayuda adicional más allá de la consulta puntual.
+- Si y solo si contás con {name}, usá SOLO el primer nombre en el saludo y despedida.
+- No te presentes con tu nombre.
+- **Terminantemente prohibido** dar explicaciones {{TIPO_DE_INFO_PROHIBIDA}}. Si preguntan algo {{TIPO_DE_INFO_PROHIBIDA}}, respondé:
+  "Eso lo ideal es verlo con {{PROFESIONAL}} en una consulta de evaluación."
+- {{IDIOMA_Y_TRATO}}, tono cercano, claro y profesional.
+- Tenés prohibido responder en otro idioma que no sea {{IDIOMA}}.
+- Ubicación: {{UBICACION_Y_REFERENCIA}}. Si te preguntan "dónde están" o "la dirección", indicá la zona y el punto de referencia.
+- Nunca ofrezcas ni confirmes un día/horario de turno: eso lo coordina {{ROL_HUMANO}}.
+
+---
+
+# FLUJO CONVERSACIONAL IDEAL
+
+## 1) Identificar {{SERVICIO_SINGULAR}}
+Antes de dar info, identificá el {{SERVICIO_SINGULAR}}.
+Si no menciona ninguno, preguntá sin listar opciones:
+"¿Por cuál {{SERVICIO_SINGULAR}} te gustaría consultar?"
+
+### Glosario (palabras clave → {{SERVICIO_SINGULAR}})
+{{GLOSARIO}}
+
+Reglas extra:
+{{REGLAS_EXTRA_GLOSARIO}}
+- Si no sabe qué {{SERVICIO_SINGULAR}} quiere, NO repreguntes ni listes opciones: pasá al paso 3 (derivar).
+
+## 2) Cuando el {{SERVICIO_SINGULAR}} está claro
+Una vez identificado:
+- Dás UNA sola oración breve de info (sin detalles {{TIPO_DE_INFO_PROHIBIDA}}).
+- Informá el precio únicamente de ESE {{SERVICIO_SINGULAR}}. Para poder enviar un precio es mandatorio que busques en tu base de conocimiento.
+  Usá "{{MONEDA}}"{{REGLA_MONEDA_ESPECIAL}}.
+- Mencioná promos de **este mes** por {{CANAL_PROMO}}, sin dar números ni detalles.
+- Formas de pago: {{FORMAS_DE_PAGO}}.
+- Incluí el link correspondiente (dejando una línea en blanco antes del link).
+
+Links por {{SERVICIO_SINGULAR}}:
+{{LINKS}}
+
+## 3) Derivar para coordinar
+Cuando el cliente muestre interés en avanzar (o no sepa qué servicio quiere), invitá a coordinar la consulta SIN agendar vos:
+- Pedí nombre completo y WhatsApp (el WhatsApp solo si NO lo tenés disponible en tu <collected-user-data>).
+- Decile que {{ROL_HUMANO}} lo contacta a la brevedad para coordinar día y horario.
+
+Mensaje sugerido:
+"¡Genial! Dejame tu nombre y en breve {{ROL_HUMANO}} te contacta para coordinar la consulta 😊"
+
+Tu misión termina al dejar la derivación hecha con el nombre del cliente.
+
+## 4) Cierre
+Si NO desea avanzar, dice "gracias" o se despide, despedite amablemente y deseale buen día.
+</script>
+
+<script>
+// ===================== DEFINICIÓN DE PREGUNTAS =====================
+// agend:true => solo aparece en modo "con agendamiento"
+const FIELDS = [
+  // --- Tu negocio ---
+  {key:"NOMBRE_NEGOCIO", section:"Tu negocio", q:"¿Cómo se llama tu negocio o marca?",
+   hint:"Aparece en la presentación del asistente.", ex:"Dra. Lucía Pintos", def:""},
+  {key:"SERVICIO_SINGULAR", section:"Tu negocio", q:"¿Cómo le decís a lo que ofrecés? (en singular)",
+   hint:"La palabra que usan tus clientes. Se repite en todo el prompt.", ex:"tratamiento  ·  servicio  ·  estudio  ·  consulta", def:"tratamiento"},
+  {key:"PROFESIONAL", section:"Tu negocio", q:"¿Quién atiende la consulta?",
+   hint:"Se usa al derivar consultas médicas/técnicas a la persona experta.", ex:"la doctora  ·  el especialista  ·  nuestro equipo médico", def:"la doctora"},
+  {key:"ROL_HUMANO", section:"Tu negocio", q:"¿Cómo llamás a la persona que atiende las derivaciones?",
+   hint:"A quién se deriva cuando el bot no resuelve.", ex:"una asesora  ·  recepción  ·  nuestro equipo", def:"una asesora"},
+  {key:"UBICACION_Y_REFERENCIA", section:"Tu negocio", q:"¿Dónde están? (zona + punto de referencia)",
+   hint:"No pongas la dirección exacta: eso se confirma al agendar.", ex:"El consultorio queda en Palermo (CABA), a metros del Alto Palermo Shopping", def:""},
+
+  // --- Tus servicios ---
+  {key:"GLOSARIO", section:"Tus servicios", q:"Pegá tu glosario: palabras clave → servicio",
+   hint:"Cómo lo escribe el cliente (incluí sinónimos y errores comunes). Una línea por servicio.",
+   ex:"- **Botox:** botox, botulínica, arrugas, patas de gallo\n- **Ácido hialurónico:** relleno, hialurónico, surcos\n- **PRP:** plasma rico en plaquetas, plasma, PRP",
+   multiline:true, def:""},
+  {key:"REGLAS_EXTRA_GLOSARIO", section:"Tus servicios", q:"¿Alguna repregunta especial del glosario?",
+   hint:"Cuando una palabra necesita aclarar algo antes de seguir. Opcional.",
+   ex:"- Si dice \"celulitis\" ⇒ ofrecer Subcisión.\n- Si menciona \"hilos\", preguntar si le interesa facial o corporal.",
+   multiline:true, optional:true, def:""},
+  {key:"LINKS", section:"Tus servicios", q:"Pegá los links de cada servicio",
+   hint:"La landing/página de cada servicio. Una línea por servicio.",
+   ex:"- Botox: https://tusitio.com/botox/\n- PRP: https://tusitio.com/plasma-rico-en-plaquetas/",
+   multiline:true, def:""},
+
+  // --- Precios y pago ---
+  {key:"MONEDA", section:"Precios y pago", q:"¿Con qué símbolo mostrás los precios?",
+   hint:"El bot busca el precio en tu base de conocimiento; esto es solo el símbolo.", ex:"$  ·  U$S  ·  €", def:"$"},
+  {key:"REGLA_MONEDA_ESPECIAL", section:"Precios y pago", q:"¿Algún servicio cobra en otra moneda?",
+   hint:"Empezá con \" y \". Dejalo vacío si no aplica. Opcional.",
+   ex:" y para Microtransplante Capilar usá \"U$S\"", optional:true, def:""},
+  {key:"FORMAS_DE_PAGO", section:"Precios y pago", q:"¿Qué formas de pago aceptás?",
+   ex:"efectivo / transferencia / débito o crédito por Mercado Pago", def:"efectivo / transferencia / débito o crédito por Mercado Pago"},
+  {key:"CANAL_PROMO", section:"Precios y pago", q:"¿Dónde están las promos del mes?",
+   hint:"El bot las menciona sin dar números.", ex:"seguir en Instagram  ·  suscribirse al newsletter", def:"seguir en Instagram"},
+
+  // --- Tono y reglas ---
+  {key:"TIPO_DE_INFO_PROHIBIDA", section:"Tono y reglas", q:"¿Qué tipo de info NO debe dar el bot?",
+   hint:"Clave en salud: el bot no opina, deriva al profesional.", ex:"médicas/clínicas  ·  diagnósticos  ·  legales", def:"médicas/clínicas"},
+  {key:"IDIOMA_Y_TRATO", section:"Tono y reglas", q:"¿Cómo querés que trate a tus clientes?",
+   hint:"Forma de tratamiento y registro.", ex:"Español rioplatense, tratá de “vos”", def:"Español rioplatense, tratá de “vos”"},
+  {key:"IDIOMA", section:"Tono y reglas", q:"¿En qué idioma responde?",
+   ex:"español", def:"español"},
+
+  // --- Agendamiento (solo modo con) ---
+  {key:"TIPO_DE_CITA", section:"Agendamiento", q:"¿Cómo se llama el encuentro que agendás?",
+   ex:"videollamada de evaluación  ·  turno presencial  ·  consulta", def:"videollamada de evaluación", agend:true},
+  {key:"CONDICION_CITA", section:"Agendamiento", q:"¿Qué hace atractiva a esa cita?",
+   hint:"El gancho que invita a coordinarla.", ex:"sin cargo  ·  gratuita  ·  de cortesía", def:"sin cargo", agend:true},
+  {key:"DIAS_Y_HORARIOS", section:"Agendamiento", q:"¿Qué días y horarios atendés?",
+   ex:"lunes a viernes de 16 a 20:30 hs", def:"lunes a viernes de 16 a 20:30 hs", agend:true},
+  {key:"DURACION", section:"Agendamiento", q:"¿Cuánto dura cada cita?",
+   ex:"15 minutos", def:"15 minutos", agend:true},
+  {key:"VENTANA_HORARIA", section:"Agendamiento", q:"¿Cuál es el rango horario agendable?",
+   hint:"El bloque dentro del cual se ofrecen turnos.", ex:"entre las 4pm y las 8pm", def:"entre las 4pm y las 8pm", agend:true},
+  {key:"ZONA_HORARIA", section:"Agendamiento", q:"¿En qué zona horaria funciona tu calendario?",
+   ex:"Argentina", def:"Argentina", agend:true},
+  {key:"REGLAS_PRIORIZACION_TURNOS", section:"Agendamiento", q:"¿Reglas para priorizar qué turnos ofrecer?",
+   hint:"En qué orden ofrecer horarios según servicio o día. Opcional: si no, se ofrecen en orden cronológico.",
+   ex:"- Priorizá primero los turnos de 18:00 a 20:30 hs. Si está lleno, ofrecé 17:00 a 18:00 hs, y luego 16:00 a 17:00 hs.",
+   multiline:true, optional:true, def:"", agend:true},
+  {key:"FORMATO_SUBJECT", section:"Agendamiento", q:"¿Qué título lleva el evento en el calendario?",
+   ex:"NOMBRE APELLIDO", def:"NOMBRE APELLIDO", agend:true},
+  {key:"FORMATO_DESCRIPCION", section:"Agendamiento", q:"¿Qué va en la descripción del evento?",
+   ex:"nombre del tratamiento y teléfono del lead", def:"nombre del tratamiento y teléfono del lead", agend:true},
+  {key:"MENSAJE_CONFIRMACION", section:"Agendamiento", q:"¿Cómo despide al confirmar el turno?",
+   hint:"Usá [DIA] y [HORA] como variables que el bot completa.",
+   ex:"Genial. Agendado. Te llamaremos este [DIA] a las [HORA] por videollamada de WhatsApp. ¡Gracias!",
+   multiline:true, def:"Genial. Agendado. Te llamaremos este [DIA] a las [HORA] por videollamada de WhatsApp. ¡Gracias!", agend:true},
+];
+
+// ===================== ESTADO =====================
+const values = {};
+const fieldByKey = {};
+FIELDS.forEach(f=>{ values[f.key] = f.def || ""; fieldByKey[f.key] = f; });
+let mode = "con";       // "con" | "sin"
+let idx = 0;            // índice dentro de visibleFields
+let visibleFields = [];
+
+const $ = id => document.getElementById(id);
+const tplCon = $("tpl-con").textContent;
+const tplSin = $("tpl-sin").textContent;
+
+function computeVisible(){
+  visibleFields = FIELDS.filter(f => mode === "con" ? true : !f.agend);
+}
+function tplText(){ return (mode === "con" ? tplCon : tplSin).trim(); }
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// ===================== ENTREVISTA =====================
+function renderQuestion(){
+  const f = visibleFields[idx];
+  $("sectionTag").textContent = f.section;
+  $("question").innerHTML = escapeHtml(f.q) + (f.optional ? '<span class="optional-badge">(opcional)</span>' : '');
+  $("hint").textContent = f.hint || "";
+  $("hint").style.display = f.hint ? "block" : "none";
+  if(f.ex){ $("example").innerHTML = "<b>Ejemplo (MEI):</b><br>" + escapeHtml(f.ex); $("example").style.display="block"; }
+  else { $("example").style.display="none"; }
+
+  const host = $("inputHost"); host.innerHTML = "";
+  const el = document.createElement(f.multiline ? "textarea" : "input");
+  if(!f.multiline) el.type = "text";
+  el.value = values[f.key];
+  el.placeholder = f.optional ? "Dejalo vacío si no aplica" : "Escribí acá…";
+  el.addEventListener("input", ()=>{ values[f.key] = el.value; renderPreview(); });
+  if(!f.multiline) el.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); next(); } });
+  host.appendChild(el);
+  el.focus();
+
+  // progreso
+  $("progLabel").textContent = f.section;
+  $("progCount").textContent = `Pregunta ${idx+1} de ${visibleFields.length}`;
+  $("bar").style.width = ((idx)/(visibleFields.length-1)*100) + "%";
+  $("backBtn").disabled = idx === 0;
+  $("skipBtn").style.visibility = f.optional ? "visible" : "hidden";
+  $("nextBtn").textContent = idx === visibleFields.length-1 ? "Terminar ✓" : "Siguiente →";
+  renderPreview();
+}
+
+function next(){
+  if(idx < visibleFields.length-1){ idx++; renderQuestion(); }
+  else { $("bar").style.width="100%"; toast("¡Listo! Tu prompt está completo. Revisalo a la derecha 👉"); }
+}
+function back(){ if(idx>0){ idx--; renderQuestion(); } }
+
+// ===================== PREVIEW =====================
+function renderPreview(){
+  let html = escapeHtml(tplText());
+  html = html.replace(/\{\{([A-Z_]+)\}\}/g, (m, key)=>{
+    const f = fieldByKey[key];
+    const val = (values[key] || "");
+    const isCurrent = visibleFields[idx] && visibleFields[idx].key === key;
+    const cur = isCurrent ? " current" : "";
+    if(val.trim() !== ""){
+      return `<span class="ph filled${cur}" data-key="${key}">${escapeHtml(val)}</span>`;
+    }
+    const opt = (f && f.optional) ? " opt" : "";
+    return `<span class="ph pending${opt}${cur}" data-key="${key}">{{${key}}}</span>`;
+  });
+  const p = $("preview");
+  p.innerHTML = html;
+  p.querySelectorAll(".ph").forEach(span=>{
+    span.addEventListener("click", ()=>{
+      const k = span.dataset.key;
+      const i = visibleFields.findIndex(f=>f.key===k);
+      if(i>=0){ idx=i; renderQuestion(); }
+    });
+  });
+  const c = p.querySelector(".ph.current");
+  if(c) c.scrollIntoView({block:"center", behavior:"smooth"});
+}
+
+// ===================== EXPORT =====================
+function buildExport(){
+  let out = tplText().replace(/\{\{([A-Z_]+)\}\}/g, (m, key)=>{
+    const f = fieldByKey[key];
+    const val = (values[key] || "");
+    if(val.trim() !== "") return val;
+    if(f && f.optional) return "";
+    return "{{"+key+"}}"; // los obligatorios sin completar quedan marcados
+  });
+  return out.replace(/\n{3,}/g, "\n\n").trim() + "\n";
+}
+function copyPrompt(){
+  const txt = buildExport();
+  navigator.clipboard.writeText(txt).then(
+    ()=>toast("Prompt copiado al portapapeles ✓"),
+    ()=>{ // fallback file://
+      const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove(); toast("Prompt copiado ✓");
+    });
+}
+function downloadPrompt(){
+  const blob = new Blob([buildExport()], {type:"text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `prompt-${(values.NOMBRE_NEGOCIO||"salud-belleza").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}-${mode}-agendamiento.md`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Descargado ✓");
+}
+
+// ===================== TOAST =====================
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
+
+// ===================== EVENTOS =====================
+$("nextBtn").onclick = next;
+$("backBtn").onclick = back;
+$("skipBtn").onclick = next;
+$("copyBtn").onclick = copyPrompt;
+$("downloadBtn").onclick = downloadPrompt;
+$("modeToggle").addEventListener("click", e=>{
+  const btn = e.target.closest("button"); if(!btn) return;
+  mode = btn.dataset.mode;
+  [...$("modeToggle").children].forEach(b=>b.classList.toggle("active", b===btn));
+  computeVisible();
+  if(idx >= visibleFields.length) idx = visibleFields.length-1;
+  renderQuestion();
+});
+
+// ===================== INIT =====================
+computeVisible();
+renderQuestion();
+</script>
+</body>
+</html>
