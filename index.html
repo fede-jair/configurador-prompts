@@ -78,6 +78,20 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--grad);color:#fff;
     padding:12px 22px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 10px 30px rgba(123,63,242,.35)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ---- requerido + pantallas intermedias ---- */
+  .req-badge{font-size:11px;color:#c0392b;font-weight:700;margin-left:8px;background:rgba(192,57,43,.1);
+    border:1px solid rgba(192,57,43,.25);padding:3px 9px;border-radius:99px;vertical-align:middle}
+  input.invalid,textarea.invalid{border-color:#e0563f;box-shadow:0 0 0 3px rgba(224,86,63,.13)}
+  .interstitial{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 28px}
+  .interstitial .inter-icon{font-size:46px;margin-bottom:10px}
+  .interstitial h2{font-size:21px;font-weight:700;margin:0;color:var(--txt)}
+  .interstitial p{color:var(--muted);font-size:14px;line-height:1.55;max-width:350px;margin:8px 0 22px}
+  .inter-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px}
+  .inter-actions button{padding:13px;border-radius:11px;border:1.5px solid var(--border);background:#fff;
+    color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+  .inter-actions button:not(.primary):hover{border-color:var(--accent);color:var(--accent)}
+  .inter-actions button.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(123,63,242,.3)}
+  .inter-actions button.primary:hover{filter:brightness(1.05)}
   @media(max-width:880px){ main{grid-template-columns:1fr;grid-template-rows:1fr 1fr} .interview{border-right:0;border-bottom:1px solid var(--border)} .preview-wrap{padding:14px} }
 </style>
 </head>
@@ -95,21 +109,43 @@
 
 <main>
   <section class="interview">
-    <div class="progress">
+    <div class="progress" id="progress">
       <div class="bar"><i id="bar"></i></div>
-      <div class="meta"><span id="progLabel">Pregunta 1</span><span id="progCount"></span></div>
+      <div class="meta"><span id="progLabel">Esencial</span><span id="progCount"></span></div>
     </div>
-    <div class="qwrap">
+    <div class="qwrap" id="qwrap">
       <span class="section-tag" id="sectionTag"></span>
       <h2 class="question" id="question"></h2>
       <p class="hint" id="hint"></p>
       <div class="example" id="example"></div>
       <div id="inputHost"></div>
     </div>
-    <div class="nav">
+    <div class="nav" id="nav">
       <button id="backBtn">← Atrás</button>
-      <button class="skip" id="skipBtn">Saltar</button>
+      <button class="skip" id="skipBtn">Usar sugerido</button>
       <button class="primary" id="nextBtn">Siguiente →</button>
+    </div>
+
+    <!-- Pantalla intermedia: fin de lo esencial -->
+    <div class="interstitial" id="interstitial" style="display:none">
+      <div class="inter-icon">✅</div>
+      <h2>¡Listo lo esencial!</h2>
+      <p>Ya completaste lo mínimo para que tu prompt tenga sentido. Podés copiarlo así o afinar los detalles (precios, pago, tono y agendamiento) — todos vienen con un valor sugerido.</p>
+      <div class="inter-actions">
+        <button class="primary" id="tuneBtn">Afinar detalles →</button>
+        <button id="finishBtn">Copiar / terminar</button>
+      </div>
+    </div>
+
+    <!-- Pantalla final: listo -->
+    <div class="interstitial" id="done" style="display:none">
+      <div class="inter-icon">🎉</div>
+      <h2>Tu prompt está listo</h2>
+      <p>Copialo y pegalo en el entrenamiento de tu bot de Cliengo. Podés volver a editar cuando quieras.</p>
+      <div class="inter-actions">
+        <button class="primary" id="doneCopyBtn">Copiar prompt</button>
+        <button id="doneEditBtn">Volver a editar</button>
+      </div>
     </div>
   </section>
 
@@ -317,7 +353,7 @@ Si NO desea avanzar, dice "gracias" o se despide, despedite amablemente y deseal
 const FIELDS = [
   // --- Tu negocio ---
   {key:"NOMBRE_NEGOCIO", section:"Tu negocio", q:"¿Cómo se llama tu negocio o marca?",
-   hint:"Aparece en la presentación del asistente.", ex:"Dra. Lucía Pintos", def:""},
+   hint:"Aparece en la presentación del asistente.", ex:"Dra. Lucía Pintos", def:"", required:true},
   {key:"SERVICIO_SINGULAR", section:"Tu negocio", q:"¿Cómo le decís a lo que ofrecés? (en singular)",
    hint:"La palabra que usan tus clientes. Se repite en todo el prompt.", ex:"tratamiento  ·  servicio  ·  estudio  ·  consulta", def:"tratamiento"},
   {key:"PROFESIONAL", section:"Tu negocio", q:"¿Quién atiende la consulta?",
@@ -325,13 +361,13 @@ const FIELDS = [
   {key:"ROL_HUMANO", section:"Tu negocio", q:"¿Cómo llamás a la persona que atiende las derivaciones?",
    hint:"A quién se deriva cuando el bot no resuelve.", ex:"una asesora  ·  recepción  ·  nuestro equipo", def:"una asesora"},
   {key:"UBICACION_Y_REFERENCIA", section:"Tu negocio", q:"¿Dónde están? (zona + punto de referencia)",
-   hint:"No pongas la dirección exacta: eso se confirma al agendar.", ex:"El consultorio queda en Palermo (CABA), a metros del Alto Palermo Shopping", def:""},
+   hint:"No pongas la dirección exacta: eso se confirma al agendar.", ex:"El consultorio queda en Palermo (CABA), a metros del Alto Palermo Shopping", def:"", required:true},
 
   // --- Tus servicios ---
   {key:"GLOSARIO", section:"Tus servicios", q:"Pegá tu glosario: palabras clave → servicio",
    hint:"Cómo lo escribe el cliente (incluí sinónimos y errores comunes). Una línea por servicio.",
    ex:"- **Botox:** botox, botulínica, arrugas, patas de gallo\n- **Ácido hialurónico:** relleno, hialurónico, surcos\n- **PRP:** plasma rico en plaquetas, plasma, PRP",
-   multiline:true, def:""},
+   multiline:true, def:"", required:true},
   {key:"REGLAS_EXTRA_GLOSARIO", section:"Tus servicios", q:"¿Alguna repregunta especial del glosario?",
    hint:"Cuando una palabra necesita aclarar algo antes de seguir. Opcional.",
    ex:"- Si dice \"celulitis\" ⇒ ofrecer Subcisión.\n- Si menciona \"hilos\", preguntar si le interesa facial o corporal.",
@@ -339,7 +375,7 @@ const FIELDS = [
   {key:"LINKS", section:"Tus servicios", q:"Pegá los links de cada servicio",
    hint:"La landing/página de cada servicio. Una línea por servicio.",
    ex:"- Botox: https://tusitio.com/botox/\n- PRP: https://tusitio.com/plasma-rico-en-plaquetas/",
-   multiline:true, def:""},
+   multiline:true, def:"", required:true},
 
   // --- Precios y pago ---
   {key:"MONEDA", section:"Precios y pago", q:"¿Con qué símbolo mostrás los precios?",
@@ -391,8 +427,10 @@ const FIELDS = [
 const values = {};
 const fieldByKey = {};
 FIELDS.forEach(f=>{ values[f.key] = f.def || ""; fieldByKey[f.key] = f; });
-let mode = "con";       // "con" | "sin"
-let idx = 0;            // índice dentro de visibleFields
+let mode = "con";          // "con" | "sin"
+let stage = "esencial";    // "esencial" | "ajuste"
+let view = "question";     // "question" | "interstitial" | "done"
+let idx = 0;               // índice dentro de visibleFields
 let visibleFields = [];
 
 const $ = id => document.getElementById(id);
@@ -400,16 +438,34 @@ const tplCon = $("tpl-con").textContent;
 const tplSin = $("tpl-sin").textContent;
 
 function computeVisible(){
-  visibleFields = FIELDS.filter(f => mode === "con" ? true : !f.agend);
+  if(stage === "esencial") visibleFields = FIELDS.filter(f => f.required);
+  else visibleFields = FIELDS.filter(f => !f.required && (mode === "con" || !f.agend));
+}
+function requiredEmpty(f){ return f && f.required && (values[f.key]||"").trim() === ""; }
+function setView(v){
+  view = v;
+  $("progress").style.display    = v === "question" ? "block" : "none";
+  $("qwrap").style.display       = v === "question" ? "block" : "none";
+  $("nav").style.display         = v === "question" ? "flex"  : "none";
+  $("interstitial").style.display= v === "interstitial" ? "flex" : "none";
+  $("done").style.display        = v === "done" ? "flex" : "none";
 }
 function tplText(){ return (mode === "con" ? tplCon : tplSin).trim(); }
 function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 // ===================== ENTREVISTA =====================
+let currentInput = null;
+function updateNextState(){
+  $("nextBtn").disabled = requiredEmpty(visibleFields[idx]);
+}
 function renderQuestion(){
   const f = visibleFields[idx];
-  $("sectionTag").textContent = f.section;
-  $("question").innerHTML = escapeHtml(f.q) + (f.optional ? '<span class="optional-badge">(opcional)</span>' : '');
+  const isLast = idx === visibleFields.length-1;
+  $("sectionTag").textContent = (stage === "esencial" ? "Esencial · " : "") + f.section;
+  let badge = "";
+  if(f.required) badge = '<span class="req-badge">obligatoria</span>';
+  else if(f.optional) badge = '<span class="optional-badge">(opcional)</span>';
+  $("question").innerHTML = escapeHtml(f.q) + badge;
   $("hint").textContent = f.hint || "";
   $("hint").style.display = f.hint ? "block" : "none";
   if(f.ex){ $("example").innerHTML = "<b>Ejemplo (MEI):</b><br>" + escapeHtml(f.ex); $("example").style.display="block"; }
@@ -419,27 +475,55 @@ function renderQuestion(){
   const el = document.createElement(f.multiline ? "textarea" : "input");
   if(!f.multiline) el.type = "text";
   el.value = values[f.key];
-  el.placeholder = f.optional ? "Dejalo vacío si no aplica" : "Escribí acá…";
-  el.addEventListener("input", ()=>{ values[f.key] = el.value; renderPreview(); });
+  el.placeholder = f.required ? "Esta respuesta es obligatoria" : (f.optional ? "Dejalo vacío si no aplica" : "Escribí acá…");
+  el.addEventListener("input", ()=>{ values[f.key] = el.value; el.classList.remove("invalid"); updateNextState(); renderPreview(); });
   if(!f.multiline) el.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); next(); } });
   host.appendChild(el);
+  currentInput = el;
   el.focus();
 
-  // progreso
-  $("progLabel").textContent = f.section;
+  // progreso (por etapa)
+  $("progLabel").textContent = stage === "esencial" ? "Esencial" : "Ajuste fino";
   $("progCount").textContent = `Pregunta ${idx+1} de ${visibleFields.length}`;
-  $("bar").style.width = ((idx)/(visibleFields.length-1)*100) + "%";
-  $("backBtn").disabled = idx === 0;
-  $("skipBtn").style.visibility = f.optional ? "visible" : "hidden";
-  $("nextBtn").textContent = idx === visibleFields.length-1 ? "Terminar ✓" : "Siguiente →";
+  $("bar").style.width = (visibleFields.length<=1 ? 100 : (idx/(visibleFields.length-1))*100) + "%";
+  $("backBtn").disabled = stage === "esencial" && idx === 0;
+  $("skipBtn").style.visibility = (stage === "ajuste") ? "visible" : "hidden";
+  if(stage === "esencial") $("nextBtn").textContent = isLast ? "Continuar →" : "Siguiente →";
+  else $("nextBtn").textContent = isLast ? "Terminar ✓" : "Siguiente →";
+  updateNextState();
   renderPreview();
 }
 
 function next(){
-  if(idx < visibleFields.length-1){ idx++; renderQuestion(); }
-  else { $("bar").style.width="100%"; toast("¡Listo! Tu prompt está completo. Revisalo a la derecha 👉"); }
+  const f = visibleFields[idx];
+  if(requiredEmpty(f)){ if(currentInput){ currentInput.classList.add("invalid"); currentInput.focus(); } return; }
+  if(idx < visibleFields.length-1){ idx++; renderQuestion(); return; }
+  // último de la etapa
+  if(stage === "esencial") showInterstitial();
+  else finishNow();
 }
-function back(){ if(idx>0){ idx--; renderQuestion(); } }
+function back(){
+  if(idx > 0){ idx--; renderQuestion(); return; }
+  if(stage === "ajuste") showInterstitial();   // volver al cruce de etapas
+}
+function skip(){ // "Usar sugerido": deja el valor por defecto y avanza
+  const f = visibleFields[idx];
+  values[f.key] = f.def || "";
+  next();
+}
+
+// ===================== ETAPAS =====================
+function showInterstitial(){ setView("interstitial"); renderPreview(); }
+function startTune(){ stage = "ajuste"; idx = 0; computeVisible(); setView("question"); renderQuestion(); }
+function finishNow(){ setView("done"); $("bar").style.width = "100%"; renderPreview(); }
+function goToField(key){
+  const f = fieldByKey[key]; if(!f) return;
+  const target = f.required ? "esencial" : "ajuste";
+  if(target !== stage){ stage = target; computeVisible(); }
+  const i = visibleFields.findIndex(x=>x.key===key);
+  if(i < 0) return; // ej: campo de agendamiento oculto en modo "sin"
+  idx = i; setView("question"); renderQuestion();
+}
 
 // ===================== PREVIEW =====================
 function renderPreview(){
@@ -447,7 +531,7 @@ function renderPreview(){
   html = html.replace(/\{\{([A-Z_]+)\}\}/g, (m, key)=>{
     const f = fieldByKey[key];
     const val = (values[key] || "");
-    const isCurrent = visibleFields[idx] && visibleFields[idx].key === key;
+    const isCurrent = view === "question" && visibleFields[idx] && visibleFields[idx].key === key;
     const cur = isCurrent ? " current" : "";
     if(val.trim() !== ""){
       return `<span class="ph filled${cur}" data-key="${key}">${escapeHtml(val)}</span>`;
@@ -458,11 +542,7 @@ function renderPreview(){
   const p = $("preview");
   p.innerHTML = html;
   p.querySelectorAll(".ph").forEach(span=>{
-    span.addEventListener("click", ()=>{
-      const k = span.dataset.key;
-      const i = visibleFields.findIndex(f=>f.key===k);
-      if(i>=0){ idx=i; renderQuestion(); }
-    });
+    span.addEventListener("click", ()=> goToField(span.dataset.key));
   });
   const c = p.querySelector(".ph.current");
   if(c) c.scrollIntoView({block:"center", behavior:"smooth"});
@@ -504,20 +584,25 @@ function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("sho
 // ===================== EVENTOS =====================
 $("nextBtn").onclick = next;
 $("backBtn").onclick = back;
-$("skipBtn").onclick = next;
+$("skipBtn").onclick = skip;
+$("tuneBtn").onclick = startTune;
+$("finishBtn").onclick = finishNow;
+$("doneCopyBtn").onclick = copyPrompt;
+$("doneEditBtn").onclick = ()=>{ setView("question"); renderQuestion(); };
 $("copyBtn").onclick = copyPrompt;
 $("downloadBtn").onclick = downloadPrompt;
 $("modeToggle").addEventListener("click", e=>{
   const btn = e.target.closest("button"); if(!btn) return;
   mode = btn.dataset.mode;
   [...$("modeToggle").children].forEach(b=>b.classList.toggle("active", b===btn));
-  computeVisible();
-  if(idx >= visibleFields.length) idx = visibleFields.length-1;
-  renderQuestion();
+  computeVisible();                       // solo cambia la etapa "ajuste" (campos de agendamiento)
+  if(idx >= visibleFields.length) idx = Math.max(0, visibleFields.length-1);
+  if(view === "question") renderQuestion(); else renderPreview();
 });
 
 // ===================== INIT =====================
 computeVisible();
+setView("question");
 renderQuestion();
 </script>
 </body>
