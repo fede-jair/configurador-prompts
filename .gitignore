@@ -1,0 +1,7 @@
+# Por defecto, no versionar nada en la raíz
+/*
+
+# Salvo la app y este archivo
+!index.html
+!configurador.html
+!.gitignore
