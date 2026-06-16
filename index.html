@@ -24,9 +24,18 @@
   .toggle{margin-left:auto;display:flex;gap:4px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:4px}
   .toggle button{background:none;border:0;color:var(--muted);padding:8px 16px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
   .toggle button.active{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(123,63,242,.32)}
-  main{flex:1;display:grid;grid-template-columns:minmax(360px,430px) 1fr;min-height:0}
+  /* botón mostrar/ocultar preview */
+  .pv-toggle{margin-left:12px;display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);
+    color:var(--accent);padding:9px 15px;border-radius:11px;cursor:pointer;font-size:13px;font-weight:700;transition:.18s}
+  .pv-toggle:hover{border-color:var(--accent)}
+  .pv-toggle.active{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(123,63,242,.28)}
+  main{flex:1;display:grid;grid-template-columns:1fr;min-height:0;transition:grid-template-columns .28s ease}
+  main.preview-open{grid-template-columns:1fr minmax(380px,460px)}
   /* ---- panel entrevista ---- */
-  .interview{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .interview{display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  main.preview-open .interview{border-right:1px solid var(--border)}
+  /* contenido de la entrevista centrado tipo cuestionario */
+  .progress,.qwrap,.nav{width:100%;max-width:720px;margin-left:auto;margin-right:auto}
   .progress{padding:18px 24px 0}
   .progress .bar{height:7px;background:var(--panel2);border-radius:99px;overflow:hidden}
   .progress .bar > i{display:block;height:100%;background:var(--grad);width:0;transition:width .25s}
@@ -52,7 +61,8 @@
   .nav button:disabled{opacity:.4;cursor:not-allowed}
   .nav .skip{flex:0 0 auto;background:none;border:0;color:var(--muted);font-weight:600}
   /* ---- panel preview ---- */
-  .preview-wrap{display:flex;flex-direction:column;min-height:0;background:var(--bg);padding:18px 18px 18px 0}
+  .preview-wrap{display:none;flex-direction:column;min-height:0;background:var(--bg);padding:18px}
+  main.preview-open .preview-wrap{display:flex}
   .preview-bar{padding:14px 20px;border:1px solid var(--border);border-bottom:0;border-radius:16px 16px 0 0;
     display:flex;align-items:center;gap:10px;background:var(--panel)}
   .preview-bar .title{font-weight:700;font-size:14px}
@@ -92,7 +102,7 @@
   .inter-actions button:not(.primary):hover{border-color:var(--accent);color:var(--accent)}
   .inter-actions button.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(123,63,242,.3)}
   .inter-actions button.primary:hover{filter:brightness(1.05)}
-  @media(max-width:880px){ main{grid-template-columns:1fr;grid-template-rows:1fr 1fr} .interview{border-right:0;border-bottom:1px solid var(--border)} .preview-wrap{padding:14px} }
+  @media(max-width:880px){ main.preview-open{grid-template-columns:1fr;grid-template-rows:1fr 1fr} main.preview-open .interview{border-right:0;border-bottom:1px solid var(--border)} .preview-wrap{padding:14px} }
 </style>
 </head>
 <body>
@@ -105,6 +115,7 @@
     <button data-mode="con" class="active">Con agendamiento</button>
     <button data-mode="sin">Sin agendamiento</button>
   </div>
+  <button id="previewToggle" class="pv-toggle">👁 Ver mi prompt</button>
 </header>
 
 <main>
@@ -432,6 +443,7 @@ let stage = "esencial";    // "esencial" | "ajuste"
 let view = "question";     // "question" | "interstitial" | "done"
 let idx = 0;               // índice dentro de visibleFields
 let visibleFields = [];
+let previewOpen = false;   // panel de prompt: colapsado por defecto
 
 const $ = id => document.getElementById(id);
 const tplCon = $("tpl-con").textContent;
@@ -515,7 +527,7 @@ function skip(){ // "Usar sugerido": deja el valor por defecto y avanza
 // ===================== ETAPAS =====================
 function showInterstitial(){ setView("interstitial"); renderPreview(); }
 function startTune(){ stage = "ajuste"; idx = 0; computeVisible(); setView("question"); renderQuestion(); }
-function finishNow(){ setView("done"); $("bar").style.width = "100%"; renderPreview(); }
+function finishNow(){ setView("done"); $("bar").style.width = "100%"; setPreviewOpen(true); renderPreview(); }
 function goToField(key){
   const f = fieldByKey[key]; if(!f) return;
   const target = f.required ? "esencial" : "ajuste";
@@ -577,6 +589,16 @@ function downloadPrompt(){
   toast("Descargado ✓");
 }
 
+// ===================== PANEL PREVIEW (colapsable) =====================
+function setPreviewOpen(open){
+  previewOpen = open;
+  document.querySelector("main").classList.toggle("preview-open", open);
+  const b = $("previewToggle");
+  b.textContent = open ? "✕ Ocultar prompt" : "👁 Ver mi prompt";
+  b.classList.toggle("active", open);
+  if(open) renderPreview();
+}
+
 // ===================== TOAST =====================
 let toastT;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
@@ -591,6 +613,7 @@ $("doneCopyBtn").onclick = copyPrompt;
 $("doneEditBtn").onclick = ()=>{ setView("question"); renderQuestion(); };
 $("copyBtn").onclick = copyPrompt;
 $("downloadBtn").onclick = downloadPrompt;
+$("previewToggle").onclick = ()=> setPreviewOpen(!previewOpen);
 $("modeToggle").addEventListener("click", e=>{
   const btn = e.target.closest("button"); if(!btn) return;
   mode = btn.dataset.mode;
