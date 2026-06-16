@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Configurador de Prompt — Salud & Belleza · Cliengo</title>
+<title>Configurador de Prompts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
@@ -580,7 +580,7 @@ function renderQuestion(){
   $("question").innerHTML = escapeHtml(f.q) + badge;
   $("hint").textContent = f.hint || "";
   $("hint").style.display = f.hint ? "block" : "none";
-  if(f.ex){ $("example").innerHTML = "<b>Ejemplo (MEI):</b><br>" + escapeHtml(f.ex); $("example").style.display="block"; }
+  if(f.ex){ $("example").innerHTML = "<b>Ejemplo:</b><br>" + escapeHtml(f.ex); $("example").style.display="block"; }
   else { $("example").style.display="none"; }
 
   const host = $("inputHost"); host.innerHTML = "";
